@@ -12,13 +12,6 @@ fn setup(
         material: materials.add(Color::rgb(0.3, 0.5, 0.3).into()),
         ..Default::default()
     });
-    // cube
-    commands.spawn_bundle(PbrBundle {
-        mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
-        material: materials.add(Color::rgb(0.8, 0.7, 0.6).into()),
-        transform: Transform::from_xyz(0.0, 0.5, 0.0),
-        ..Default::default()
-    });
     // light
     commands.spawn_bundle(PointLightBundle {
         transform: Transform::from_xyz(4.0, 8.0, 4.0),
@@ -33,18 +26,27 @@ fn setup(
 
 struct LoadingState {
     pub handle: Handle<Gltf>,
+    pub spawned: bool,
 }
 
 fn load_model(asset_server: Res<AssetServer>, mut commands: Commands) {
-    let state = LoadingState  { handle: asset_server.load("sinsack.glb") };
+    let state = LoadingState  {
+        handle: asset_server.load("sinsack.glb"),
+        spawned: false,
+    };
     commands.insert_resource(state);
 }
 
-fn check_loaded_model(state: Res<LoadingState>, gltfs: Res<Assets<Gltf>>) {
+fn check_loaded_model(mut state: ResMut<LoadingState>, gltfs: Res<Assets<Gltf>>, mut commands: Commands) {
     if let Some(gltf) = gltfs.get(state.handle.clone()) {
-        info!("{:?}", gltf);
-    } else {
-        error!("Not loaded");
+        if !state.spawned {
+            info!("{:?}", gltf);
+            for scene in gltf.scenes.iter() {
+                info!("Spawning {:?}", scene);
+                commands.spawn_scene(scene.clone());
+            }
+            state.spawned = true;
+        }
     }
 }
 
